@@ -1,0 +1,33 @@
+apply plugin: 'java'
+
+version = '1.0'
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+ext{
+    keycloakVersion = "4.8.3.Final"
+}
+
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+	manifest {
+        attributes 'group-selector': 'Keycloak Group Selector',  
+        	'Implementation-Version': version
+    }
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+//Get dependencies from Maven central repository
+repositories {
+    mavenCentral()
+}
+
+//Project dependencies
+dependencies {
+    compile group: 'org.keycloak', name: 'keycloak-server-spi-private', version: keycloakVersion
+    compile group: 'org.keycloak', name: 'keycloak-server-spi', version: keycloakVersion
+    compile group: 'org.keycloak', name: 'keycloak-services', version: keycloakVersion
+    compile group: 'org.keycloak', name: 'keycloak-model-api', version: "1.8.1.Final"
+}
