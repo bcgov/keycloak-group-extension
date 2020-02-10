@@ -60,7 +60,7 @@ public class GroupSelectAuthenticationFactory implements AuthenticatorFactory, C
         return configProperties;
     }
 
-    private static final List<ProviderConfigProperty> configProperties = new ArrayList<ProviderConfigProperty>();
+    private static List<ProviderConfigProperty> configProperties = new ArrayList<ProviderConfigProperty>();
 
     static {
         ProviderConfigProperty property;
@@ -73,16 +73,16 @@ public class GroupSelectAuthenticationFactory implements AuthenticatorFactory, C
         configProperties.add(property);
 
         property = new ProviderConfigProperty();
-        property.setName("User Property");
-        property.setLabel(ATTRIBUTE_PROP);
+        property.setName(ATTRIBUTE_PROP);
+        property.setLabel("User Property");
         property.setType(ProviderConfigProperty.STRING_TYPE);
         property.setDefaultValue(ATTRIBUTE_DEFAULT);
         property.setHelpText("What property to stash the current project in");
         configProperties.add(property);
 
         property = new ProviderConfigProperty();
-        property.setName("Exclusion Groups");
-        property.setLabel(EXCLUSION_PROP);
+        property.setName(EXCLUSION_PROP);
+        property.setLabel("Exclusion Groups");
         property.setDefaultValue(EXCLUSION_DEFAULT);
         property.setType(ProviderConfigProperty.STRING_TYPE);
         property.setHelpText("Groups that if a user is a member of they get to skip the project selection, (seperate multiple values with a comma and a space)");

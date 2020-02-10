@@ -71,6 +71,7 @@ public class GroupSelectAuthentication implements Authenticator {
 
         Pattern p = Pattern.compile(groupRe);
         Set<GroupModel> groupSet = context.getUser().getGroups();
+
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
             Matcher m = p.matcher(g.getName());
@@ -102,7 +103,10 @@ public class GroupSelectAuthentication implements Authenticator {
 
         //if the user has no groups, then report an error
         if (groups.size() == 0){
-            context.failure(AuthenticationFlowError.CLIENT_DISABLED);
+            //context.failure(AuthenticationFlowError.CLIENT_DISABLED);
+
+            //used to report an error but that caused undesired side effects
+            context.success();
             return;
         }
 
@@ -185,7 +189,12 @@ public class GroupSelectAuthentication implements Authenticator {
 
     protected boolean validateAnswer(AuthenticationFlowContext context) {
         MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
-        String group = formData.getFirst("group_answer");
+        String group = "";
+        try{
+            group = formData.getFirst("group_answer");
+        }catch(Exception e){
+            return false;
+        }
         UserCredentialModel input = new UserCredentialModel();
         input.setType(GroupQuestionCredentialProvider.GROUP_QUESTION);
 
