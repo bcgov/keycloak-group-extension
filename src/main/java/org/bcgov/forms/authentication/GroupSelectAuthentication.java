@@ -71,6 +71,11 @@ public class GroupSelectAuthentication implements Authenticator {
 
         Pattern p = Pattern.compile(groupRe);
         Set<GroupModel> groupSet = context.getUser().getGroups();
+        ArrayList<String> allGroups = new ArrayList<String>();
+        for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
+            GroupModel g = it.next();
+            allGroups.add(g.getName());
+        }
 
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
@@ -95,7 +100,7 @@ public class GroupSelectAuthentication implements Authenticator {
                     }
                 }
 
-                context.getUser().setAttribute(projectProp, project);
+                context.getUser().setAttribute(projectProp, allGroups);
                 context.success();
                 return;
             }
@@ -106,6 +111,9 @@ public class GroupSelectAuthentication implements Authenticator {
             //context.failure(AuthenticationFlowError.CLIENT_DISABLED);
 
             //used to report an error but that caused undesired side effects
+            String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
+            projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            context.getUser().setAttribute(projectProp, new ArrayList<String>());
             context.success();
             return;
         }
