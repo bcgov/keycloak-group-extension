@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.HttpHeaders;
@@ -79,14 +80,17 @@ public class GroupSelectAuthentication implements Authenticator {
 
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
-            Matcher m = p.matcher(g.getName());
+            
+            String fullGroupName = getFullGroupName(g);
+            
+            Matcher m = p.matcher(fullGroupName);
             //building group list, if the group is among the pattern
             if (m.find()){
-                groups.add(g.getName());
+                groups.add(fullGroupName);
             }
 
             //if this group is in the exclusion list, then abort, and add all the groups to the project attribtue
-            if (exclGr.contains(g.getName())) {
+            if (exclGr.contains(fullGroupName)) {
                 List<String> project = new ArrayList<String>();
                 String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
                 if (config != null) {
@@ -94,9 +98,10 @@ public class GroupSelectAuthentication implements Authenticator {
                 }
                 for (Iterator<GroupModel> it2 = groupSet.iterator(); it2.hasNext(); ) {
                     GroupModel g2 = it2.next();
-                    Matcher m2 = p.matcher(g2.getName());
+                    String fullGroupName2 = getFullGroupName(g2);
+                    Matcher m2 = p.matcher(fullGroupName2);
                     if (!m2.find()){
-                        project.add(g2.getName());
+                        project.add(fullGroupName2);
                     }
                 }
 
@@ -230,6 +235,22 @@ public class GroupSelectAuthentication implements Authenticator {
         
     }
 
+    private String getFullGroupName (GroupModel g) {
+        List<String> path = new ArrayList<>();
+        GroupModel aNode = g;
+        while (aNode != null) {
+            path.add(0, aNode.getName());
+            if (aNode.getParentId() != null) {
+                aNode = aNode.getParent();
+            } else {
+                aNode = null;
+            }
+        }
+        String fullPath = path.stream().collect(Collectors.joining("/"));
+
+        return path.size() == 1 ? path.get(0) : String.format("/%s", fullPath);
+    }
+    
     @Override
     public boolean requiresUser() {
         return true;
