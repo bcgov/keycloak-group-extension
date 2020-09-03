@@ -161,9 +161,10 @@ public class GroupSelectAuthentication implements Authenticator {
         Pattern p = Pattern.compile(groupRe);
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
-            Matcher m = p.matcher(g.getName());
+            String fullGroupName = getFullGroupName(g);
+            Matcher m = p.matcher(fullGroupName);
             if (!m.find()){
-                project.add(g.getName());
+                project.add(fullGroupName);
             }
         }
 
@@ -225,7 +226,8 @@ public class GroupSelectAuthentication implements Authenticator {
             Set<GroupModel> groupSet = context.getUser().getGroups();
             for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
                 GroupModel g = it.next();
-                if (g.getName().equals(group)){
+                String fullGroupName = getFullGroupName(g);
+                if (fullGroupName.equals(group)){
                     return true;
                 }
             }
