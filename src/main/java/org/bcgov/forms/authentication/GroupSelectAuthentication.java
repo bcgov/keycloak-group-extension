@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -33,7 +35,9 @@ import org.keycloak.models.UserModel;
  *
  */
 public class GroupSelectAuthentication implements Authenticator {
+    private static final Logger LOG = Logger.getLogger(GroupSelectAuthentication.class.getName());
 
+    final static String GROUP_ATTR_PENDING = "pending";
     final static String GROUP_QUESTION_COOKIE = "GROUP_QUESTION_ANSWERED";
     public static final String CREDENTIAL_TYPE = "group_question";
 
@@ -54,6 +58,9 @@ public class GroupSelectAuthentication implements Authenticator {
             context.success();
             return;
         }
+        
+        // process any pending group requests
+        addPendingGroups(context);
 
         //exclusion group config
         AuthenticatorConfigModel config = context.getAuthenticatorConfig();
@@ -169,6 +176,7 @@ public class GroupSelectAuthentication implements Authenticator {
         }
 
         context.getUser().setAttribute(projectProp, project);
+
         context.success();
     }
 
@@ -253,6 +261,41 @@ public class GroupSelectAuthentication implements Authenticator {
         return path.size() == 1 ? path.get(0) : String.format("/%s", fullPath);
     }
     
+    private void addPendingGroups(AuthenticationFlowContext context) {
+        UserModel user = context.getUser();
+        List<GroupModel> groups = context.getRealm().getGroups();
+        LOG.log(Level.INFO, "Process Pending Groups for user {0}", user.getUsername());
+        traverseGroups (groups, user);
+    }
+    
+    private void traverseGroups (List<GroupModel> groups, UserModel user) {
+        String username = user.getUsername();
+        for (GroupModel group : groups) {
+            boolean processed = false;
+            List<String> pending = group.getAttribute(GROUP_ATTR_PENDING);
+            if (pending != null) {
+                for ( String pendingUser : pending) {
+                    if (username.equals(pendingUser)) {
+                        boolean success = user.getGroups().add(group);
+                        if (!success) {
+                            LOG.log(Level.WARNING, "Unable to add user to group {0}", group);
+                        } else {
+                            processed = true;
+                        }
+                    }
+                }
+            }
+            if (processed) {
+                pending.remove(username);
+                group.setAttribute(GROUP_ATTR_PENDING, pending);
+            }
+            Set<GroupModel> subGroups = group.getSubGroups();
+            if (subGroups != null) {
+                traverseGroups (new ArrayList<>(group.getSubGroups()), user);
+            }
+        }
+    }
+
     @Override
     public boolean requiresUser() {
         return true;
