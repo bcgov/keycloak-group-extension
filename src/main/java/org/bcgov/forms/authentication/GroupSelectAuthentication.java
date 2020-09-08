@@ -276,12 +276,8 @@ public class GroupSelectAuthentication implements Authenticator {
             if (pending != null) {
                 for ( String pendingUser : pending) {
                     if (username.equals(pendingUser)) {
-                        boolean success = user.getGroups().add(group);
-                        if (!success) {
-                            LOG.log(Level.WARNING, "Unable to add user to group {0}", group);
-                        } else {
-                            processed = true;
-                        }
+                        user.joinGroup(group);
+                        processed = true;
                     }
                 }
             }
