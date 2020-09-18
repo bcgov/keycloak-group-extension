@@ -124,7 +124,9 @@ public class GroupSelectAuthentication implements Authenticator {
 
             //used to report an error but that caused undesired side effects
             String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
-            projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            if (config != null) {
+                projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            }
             context.getUser().setAttribute(projectProp, new ArrayList<String>());
             context.success();
             return;
@@ -264,10 +266,9 @@ public class GroupSelectAuthentication implements Authenticator {
     private void addPendingGroups(AuthenticationFlowContext context) {
         UserModel user = context.getUser();
         List<GroupModel> groups = context.getRealm().getGroups();
-        LOG.log(Level.INFO, "Process Pending Groups for user {0}", user.getUsername());
         traverseGroups (groups, user);
     }
-    
+
     private void traverseGroups (List<GroupModel> groups, UserModel user) {
         String username = user.getUsername();
         for (GroupModel group : groups) {
