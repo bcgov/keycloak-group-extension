@@ -167,9 +167,9 @@ public class GroupSelectAuthentication implements Authenticator {
             projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
         }
 
-        Boolean includeOtherGroups = GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT;
+        Boolean includeOtherGroups = Boolean.valueOf(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT);
         if (config != null) {
-            includeOtherGroups = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_PROP, includeOtherGroups));
+            includeOtherGroups = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_PROP, GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT));
         }
 
         Set<GroupModel> groupSet = context.getUser().getGroups();
@@ -241,9 +241,9 @@ public class GroupSelectAuthentication implements Authenticator {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
         }
 
-        Boolean useFullGroupPath = GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT;
+        Boolean useFullGroupPath = Boolean.valueOf(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT);
         if (config != null) {
-            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, fullGroupPath));
+            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT));
         }
 
         Pattern p = Pattern.compile(groupRe);

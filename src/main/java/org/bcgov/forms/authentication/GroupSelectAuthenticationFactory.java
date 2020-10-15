@@ -24,10 +24,10 @@ public class GroupSelectAuthenticationFactory implements AuthenticatorFactory, C
     public static final String EXCLUSION_DEFAULT = "";
 
     public static final String USE_FULL_GROUP_PATH_PROP = "user.group_path";
-    public static final Boolean USE_FULL_GROUP_PATH_DEFAULT = Boolean.FALSE;
+    public static final String USE_FULL_GROUP_PATH_DEFAULT = "FALSE";
 
     public static final String INCLUDE_OTHER_GROUPS_PROP = "user.include_other_groups";
-    public static final Boolean INCLUDE_OTHER_GROUPS_DEFAULT = Boolean.TRUE;
+    public static final String INCLUDE_OTHER_GROUPS_DEFAULT = "TRUE";
 
     public static final String ATTRIBUTE_PROP = "user.prop";
     public static final String ATTRIBUTE_DEFAULT = "projects";
