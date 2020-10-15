@@ -94,12 +94,12 @@ public class GroupSelectAuthentication implements Authenticator {
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
             
-            String fullGroupName = getFullGroupName(g, useFullGroupPath);
+            String fullGroupName = getFullGroupName(g, Boolean.TRUE);
             
             Matcher m = p.matcher(fullGroupName);
             //building group list, if the group is among the pattern
             if (m.find()){
-                groups.add(fullGroupName);
+                groups.add(getFullGroupName(g, useFullGroupPath));
             }
 
             //if this group is in the exclusion list, then abort, and add all the groups to the project attribtue
