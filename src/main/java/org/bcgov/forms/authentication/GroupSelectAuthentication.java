@@ -71,10 +71,16 @@ public class GroupSelectAuthentication implements Authenticator {
 
         List<String> groups = new ArrayList<String>();
 
+
         //group regular expression config
         String groupRe = GroupSelectAuthenticationFactory.EXPRESSION_DEFAULT;
         if (config != null) {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
+        }
+
+        Boolean useFullGroupPath = GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT;
+        if (config != null) {
+            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, fullGroupPath));
         }
 
         Pattern p = Pattern.compile(groupRe);
@@ -88,7 +94,7 @@ public class GroupSelectAuthentication implements Authenticator {
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
             
-            String fullGroupName = getFullGroupName(g);
+            String fullGroupName = getFullGroupName(g, useFullGroupPath);
             
             Matcher m = p.matcher(fullGroupName);
             //building group list, if the group is among the pattern
@@ -105,7 +111,7 @@ public class GroupSelectAuthentication implements Authenticator {
                 }
                 for (Iterator<GroupModel> it2 = groupSet.iterator(); it2.hasNext(); ) {
                     GroupModel g2 = it2.next();
-                    String fullGroupName2 = getFullGroupName(g2);
+                    String fullGroupName2 = getFullGroupName(g2, Boolean.TRUE);
                     Matcher m2 = p.matcher(fullGroupName2);
                     if (!m2.find()){
                         project.add(fullGroupName2);
@@ -118,7 +124,7 @@ public class GroupSelectAuthentication implements Authenticator {
             }
         }
 
-        //if the user has no groups, then report an error
+        //if the user has no groups, then gracefully continue with an empty list
         if (groups.size() == 0){
             //context.failure(AuthenticationFlowError.CLIENT_DISABLED);
 
@@ -161,19 +167,26 @@ public class GroupSelectAuthentication implements Authenticator {
             projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
         }
 
+        Boolean includeOtherGroups = GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT;
+        if (config != null) {
+            includeOtherGroups = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_PROP, includeOtherGroups));
+        }
+
         Set<GroupModel> groupSet = context.getUser().getGroups();
         String groupRe = GroupSelectAuthenticationFactory.EXPRESSION_DEFAULT;
         if (config != null) {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
         }
-        //add all the groups that aren't projects
-        Pattern p = Pattern.compile(groupRe);
-        for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
-            GroupModel g = it.next();
-            String fullGroupName = getFullGroupName(g);
-            Matcher m = p.matcher(fullGroupName);
-            if (!m.find()){
-                project.add(fullGroupName);
+        //add all the groups that aren't projects (always using full group path)
+        if (includeOtherGroups) {
+            Pattern p = Pattern.compile(groupRe);
+            for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
+                GroupModel g = it.next();
+                String fullGroupName = getFullGroupName(g, Boolean.TRUE);
+                Matcher m = p.matcher(fullGroupName);
+                if (!m.find()){
+                    project.add(fullGroupName);
+                }
             }
         }
 
@@ -228,6 +241,11 @@ public class GroupSelectAuthentication implements Authenticator {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
         }
 
+        Boolean useFullGroupPath = GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT;
+        if (config != null) {
+            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, fullGroupPath));
+        }
+
         Pattern p = Pattern.compile(groupRe);
         Matcher m = p.matcher(group);
 
@@ -236,7 +254,7 @@ public class GroupSelectAuthentication implements Authenticator {
             Set<GroupModel> groupSet = context.getUser().getGroups();
             for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
                 GroupModel g = it.next();
-                String fullGroupName = getFullGroupName(g);
+                String fullGroupName = getFullGroupName(g, useFullGroupPath);
                 if (fullGroupName.equals(group)){
                     return true;
                 }
@@ -247,7 +265,8 @@ public class GroupSelectAuthentication implements Authenticator {
         
     }
 
-    private String getFullGroupName (GroupModel g) {
+    private String getFullGroupName (GroupModel g, boolean useFullPath) {
+
         List<String> path = new ArrayList<>();
         GroupModel aNode = g;
         while (aNode != null) {
@@ -258,9 +277,16 @@ public class GroupSelectAuthentication implements Authenticator {
                 aNode = null;
             }
         }
-        String fullPath = path.stream().collect(Collectors.joining("/"));
 
-        return path.size() == 1 ? path.get(0) : String.format("/%s", fullPath);
+        if (path.size() == 1) {
+            return path.get(0);
+        } else if (useFullPath) {
+            String fullPath = path.stream().collect(Collectors.joining("/"));
+            return String.format("/%s", fullPath);
+        } else {
+            // return the leaf (last) group only
+            return path.get(path.size() - 1);
+        }
     }
     
     private void addPendingGroups(AuthenticationFlowContext context) {
