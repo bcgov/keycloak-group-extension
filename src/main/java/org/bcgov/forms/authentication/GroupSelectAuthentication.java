@@ -246,23 +246,19 @@ public class GroupSelectAuthentication implements Authenticator {
             useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT));
         }
 
-        Pattern p = Pattern.compile(groupRe);
-        Matcher m = p.matcher(group);
-
         //make sure the selected group matches the regular expression and is one of the users groups
-        if (m.find()){
-            Set<GroupModel> groupSet = context.getUser().getGroups();
-            for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
-                GroupModel g = it.next();
-                String fullGroupName = getFullGroupName(g, useFullGroupPath);
-                if (fullGroupName.equals(group)){
-                    return true;
-                }
+        Set<GroupModel> groupSet = context.getUser().getGroups();
+        for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
+            GroupModel g = it.next();
+            String fullGroupName = getFullGroupName(g, useFullGroupPath);
+            if (fullGroupName.equals(group)){
+                Pattern p = Pattern.compile(groupRe);
+                Matcher m = p.matcher(getFullGroupName(g, Boolean.TRUE);
+                return m.find();
             }
         }
-        return false;
 
-        
+        return false;
     }
 
     private String getFullGroupName (GroupModel g, boolean useFullPath) {
