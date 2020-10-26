@@ -6,8 +6,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.Cookie;
 import javax.ws.rs.core.HttpHeaders;
@@ -32,7 +35,9 @@ import org.keycloak.models.UserModel;
  *
  */
 public class GroupSelectAuthentication implements Authenticator {
+    private static final Logger LOG = Logger.getLogger(GroupSelectAuthentication.class.getName());
 
+    final static String GROUP_ATTR_PENDING = "pending";
     final static String GROUP_QUESTION_COOKIE = "GROUP_QUESTION_ANSWERED";
     public static final String CREDENTIAL_TYPE = "group_question";
 
@@ -53,6 +58,9 @@ public class GroupSelectAuthentication implements Authenticator {
             context.success();
             return;
         }
+        
+        // process any pending group requests
+        addPendingGroups(context);
 
         //exclusion group config
         AuthenticatorConfigModel config = context.getAuthenticatorConfig();
@@ -63,10 +71,16 @@ public class GroupSelectAuthentication implements Authenticator {
 
         List<String> groups = new ArrayList<String>();
 
+
         //group regular expression config
         String groupRe = GroupSelectAuthenticationFactory.EXPRESSION_DEFAULT;
         if (config != null) {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
+        }
+
+        Boolean useFullGroupPath = Boolean.valueOf(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT);
+        if (config != null) {
+            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT));
         }
 
         Pattern p = Pattern.compile(groupRe);
@@ -79,14 +93,17 @@ public class GroupSelectAuthentication implements Authenticator {
 
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
-            Matcher m = p.matcher(g.getName());
+            
+            String fullGroupName = getFullGroupName(g, Boolean.TRUE);
+            
+            Matcher m = p.matcher(fullGroupName);
             //building group list, if the group is among the pattern
             if (m.find()){
-                groups.add(g.getName());
+                groups.add(getFullGroupName(g, useFullGroupPath));
             }
 
             //if this group is in the exclusion list, then abort, and add all the groups to the project attribtue
-            if (exclGr.contains(g.getName())) {
+            if (exclGr.contains(fullGroupName)) {
                 List<String> project = new ArrayList<String>();
                 String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
                 if (config != null) {
@@ -94,9 +111,10 @@ public class GroupSelectAuthentication implements Authenticator {
                 }
                 for (Iterator<GroupModel> it2 = groupSet.iterator(); it2.hasNext(); ) {
                     GroupModel g2 = it2.next();
-                    Matcher m2 = p.matcher(g2.getName());
+                    String fullGroupName2 = getFullGroupName(g2, Boolean.TRUE);
+                    Matcher m2 = p.matcher(fullGroupName2);
                     if (!m2.find()){
-                        project.add(g2.getName());
+                        project.add(fullGroupName2);
                     }
                 }
 
@@ -106,13 +124,15 @@ public class GroupSelectAuthentication implements Authenticator {
             }
         }
 
-        //if the user has no groups, then report an error
+        //if the user has no groups, then gracefully continue with an empty list
         if (groups.size() == 0){
             //context.failure(AuthenticationFlowError.CLIENT_DISABLED);
 
             //used to report an error but that caused undesired side effects
             String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
-            projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            if (config != null) {
+                projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            }
             context.getUser().setAttribute(projectProp, new ArrayList<String>());
             context.success();
             return;
@@ -162,22 +182,31 @@ public class GroupSelectAuthentication implements Authenticator {
             projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
         }
 
+        Boolean includeOtherGroups = Boolean.valueOf(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT);
+        if (config != null) {
+            includeOtherGroups = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_PROP, GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT));
+        }
+
         Set<GroupModel> groupSet = context.getUser().getGroups();
         String groupRe = GroupSelectAuthenticationFactory.EXPRESSION_DEFAULT;
         if (config != null) {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
         }
-        //add all the groups that aren't projects
-        Pattern p = Pattern.compile(groupRe);
-        for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
-            GroupModel g = it.next();
-            Matcher m = p.matcher(g.getName());
-            if (!m.find()){
-                project.add(g.getName());
+        //add all the groups that aren't projects (always using full group path)
+        if (includeOtherGroups) {
+            Pattern p = Pattern.compile(groupRe);
+            for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
+                GroupModel g = it.next();
+                String fullGroupName = getFullGroupName(g, Boolean.TRUE);
+                Matcher m = p.matcher(fullGroupName);
+                if (!m.find()){
+                    project.add(fullGroupName);
+                }
             }
         }
 
         context.getUser().setAttribute(projectProp, project);
+
         context.success();
     }
 
@@ -227,22 +256,78 @@ public class GroupSelectAuthentication implements Authenticator {
             groupRe = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.EXPRESSION_PROP, groupRe));
         }
 
-        Pattern p = Pattern.compile(groupRe);
-        Matcher m = p.matcher(group);
+        Boolean useFullGroupPath = Boolean.valueOf(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT);
+        if (config != null) {
+            useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT));
+        }
 
         //make sure the selected group matches the regular expression and is one of the users groups
-        if (m.find()){
-            Set<GroupModel> groupSet = context.getUser().getGroups();
-            for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
-                GroupModel g = it.next();
-                if (g.getName().equals(group)){
-                    return true;
-                }
+        Set<GroupModel> groupSet = context.getUser().getGroups();
+        for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
+            GroupModel g = it.next();
+            String fullGroupName = getFullGroupName(g, useFullGroupPath);
+            if (fullGroupName.equals(group)){
+                Pattern p = Pattern.compile(groupRe);
+                Matcher m = p.matcher(getFullGroupName(g, Boolean.TRUE));
+                return m.find();
             }
         }
-        return false;
 
-        
+        return false;
+    }
+
+    private String getFullGroupName (GroupModel g, boolean useFullPath) {
+
+        List<String> path = new ArrayList<>();
+        GroupModel aNode = g;
+        while (aNode != null) {
+            path.add(0, aNode.getName());
+            if (aNode.getParentId() != null) {
+                aNode = aNode.getParent();
+            } else {
+                aNode = null;
+            }
+        }
+
+        if (path.size() == 1) {
+            return path.get(0);
+        } else if (useFullPath) {
+            String fullPath = path.stream().collect(Collectors.joining("/"));
+            return String.format("/%s", fullPath);
+        } else {
+            // return the leaf (last) group only
+            return path.get(path.size() - 1);
+        }
+    }
+    
+    private void addPendingGroups(AuthenticationFlowContext context) {
+        UserModel user = context.getUser();
+        List<GroupModel> groups = context.getRealm().getGroups();
+        traverseGroups (groups, user);
+    }
+
+    private void traverseGroups (List<GroupModel> groups, UserModel user) {
+        String username = user.getUsername();
+        for (GroupModel group : groups) {
+            boolean processed = false;
+            List<String> pending = group.getAttribute(GROUP_ATTR_PENDING);
+            if (pending != null) {
+                for ( String pendingUser : pending) {
+                    if (username.equals(pendingUser)) {
+                        user.joinGroup(group);
+                        processed = true;
+                    }
+                }
+            }
+            if (processed) {
+                pending.remove(username);
+                group.setAttribute(GROUP_ATTR_PENDING, pending);
+            }
+            Set<GroupModel> subGroups = group.getSubGroups();
+            if (subGroups != null) {
+                traverseGroups (new ArrayList<>(group.getSubGroups()), user);
+            }
+        }
     }
 
     @Override

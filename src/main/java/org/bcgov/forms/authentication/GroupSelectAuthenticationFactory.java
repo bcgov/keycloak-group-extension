@@ -23,6 +23,12 @@ public class GroupSelectAuthenticationFactory implements AuthenticatorFactory, C
     public static final String EXCLUSION_PROP = "user.excl";
     public static final String EXCLUSION_DEFAULT = "";
 
+    public static final String USE_FULL_GROUP_PATH_PROP = "user.group_path";
+    public static final String USE_FULL_GROUP_PATH_DEFAULT = "FALSE";
+
+    public static final String INCLUDE_OTHER_GROUPS_PROP = "user.include_other_groups";
+    public static final String INCLUDE_OTHER_GROUPS_DEFAULT = "TRUE";
+
     public static final String ATTRIBUTE_PROP = "user.prop";
     public static final String ATTRIBUTE_DEFAULT = "projects";
 
@@ -70,6 +76,22 @@ public class GroupSelectAuthenticationFactory implements AuthenticatorFactory, C
         property.setDefaultValue(EXPRESSION_DEFAULT);
         property.setType(ProviderConfigProperty.STRING_TYPE);
         property.setHelpText("Regular Expression for the groups to select from");
+        configProperties.add(property);
+
+        property = new ProviderConfigProperty();
+        property.setName(USE_FULL_GROUP_PATH_PROP);
+        property.setLabel("Use Full Group Path?");
+        property.setDefaultValue(USE_FULL_GROUP_PATH_DEFAULT);
+        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
+        property.setHelpText("Whether to display and set the full group path or just the leaf group");
+        configProperties.add(property);
+
+        property = new ProviderConfigProperty();
+        property.setName(INCLUDE_OTHER_GROUPS_PROP);
+        property.setLabel("Include non-project groups?");
+        property.setDefaultValue(INCLUDE_OTHER_GROUPS_DEFAULT);
+        property.setType(ProviderConfigProperty.BOOLEAN_TYPE);
+        property.setHelpText("Whether to include the non-project groups in the user property.");
         configProperties.add(property);
 
         property = new ProviderConfigProperty();
