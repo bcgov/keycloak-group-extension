@@ -118,6 +118,19 @@ public class GroupSelectAuthentication implements Authenticator {
             return;
         }
 
+        //if the user has one project then bypass
+        if (groups.size() == 1){
+            //context.failure(AuthenticationFlowError.CLIENT_DISABLED);
+
+            //used to report an error but that caused undesired side effects
+            String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
+            projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
+            context.getUser().setAttribute(projectProp, new ArrayList<String>());
+            context.getUser().setAttribute(projectProp, groups);
+            context.success();
+            return;
+        }
+
         //otherwise challenge them to the group select
         Response challenge = context.form().setAttribute("groups", groups.toArray()).createForm("group-question.ftl");
         context.challenge(challenge);
@@ -125,9 +138,11 @@ public class GroupSelectAuthentication implements Authenticator {
 
     @Override
     public void action(AuthenticationFlowContext context) {
+        System.err.println("GQ action");
         //check group and report an invalid selection if invalid
         boolean validated = validateAnswer(context);
         if (!validated) {
+            System.err.println("!validated");
             Response challenge = context.form().setError("BadGroup").createForm("group-question.ftl");
             context.failureChallenge(AuthenticationFlowError.INVALID_CREDENTIALS, challenge);
             return;
