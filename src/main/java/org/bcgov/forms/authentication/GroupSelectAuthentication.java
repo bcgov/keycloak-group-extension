@@ -83,6 +83,11 @@ public class GroupSelectAuthentication implements Authenticator {
             useFullGroupPath = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_PROP, GroupSelectAuthenticationFactory.USE_FULL_GROUP_PATH_DEFAULT));
         }
 
+        Boolean includeOtherGroups = Boolean.valueOf(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT);
+        if (config != null) {
+            includeOtherGroups = Boolean.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_PROP, GroupSelectAuthenticationFactory.INCLUDE_OTHER_GROUPS_DEFAULT));
+        }
+
         Pattern p = Pattern.compile(groupRe);
         Set<GroupModel> groupSet = context.getUser().getGroups();
         ArrayList<String> allGroups = new ArrayList<String>();
@@ -145,8 +150,13 @@ public class GroupSelectAuthentication implements Authenticator {
             //used to report an error but that caused undesired side effects
             String projectProp = GroupSelectAuthenticationFactory.ATTRIBUTE_DEFAULT;
             projectProp = String.valueOf(config.getConfig().getOrDefault(GroupSelectAuthenticationFactory.ATTRIBUTE_PROP, projectProp));
-            context.getUser().setAttribute(projectProp, new ArrayList<String>());
-            context.getUser().setAttribute(projectProp, groups);
+            
+            if (includeOtherGroups){
+                //use all groups as they only had one project
+                context.getUser().setAttribute(projectProp, allGroups);
+            }else{
+                context.getUser().setAttribute(projectProp, groups);
+            }
             context.success();
             return;
         }
