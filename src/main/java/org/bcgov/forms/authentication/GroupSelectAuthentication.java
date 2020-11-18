@@ -282,7 +282,9 @@ public class GroupSelectAuthentication implements Authenticator {
             if (groupName.equals(group)){
                 Pattern p = Pattern.compile(groupRe);
                 Matcher m = p.matcher(getFullGroupName(g, Boolean.TRUE));
-                if (m.find() == false && useFullGroupPath == false) {
+                if (m.find()) {
+                    return true;
+                } else if (m.find() == false && useFullGroupPath == true) {
                     return false;
                 }
             }
