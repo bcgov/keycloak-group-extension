@@ -275,11 +275,16 @@ public class GroupSelectAuthentication implements Authenticator {
         Set<GroupModel> groupSet = context.getUser().getGroups();
         for (Iterator<GroupModel> it = groupSet.iterator(); it.hasNext(); ) {
             GroupModel g = it.next();
-            String fullGroupName = getFullGroupName(g, useFullGroupPath);
-            if (fullGroupName.equals(group)){
+            String groupName = getFullGroupName(g, useFullGroupPath);
+
+            // Technically there could be multiple groups with 'groupName' if fullGroupPath is false, 
+            // so if we don't find it, we should continue looking
+            if (groupName.equals(group)){
                 Pattern p = Pattern.compile(groupRe);
                 Matcher m = p.matcher(getFullGroupName(g, Boolean.TRUE));
-                return m.find();
+                if (m.find() == false && useFullGroupPath == false) {
+                    return false;
+                }
             }
         }
 
